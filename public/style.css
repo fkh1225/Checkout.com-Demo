@@ -149,8 +149,7 @@ template {
 html {
   padding: 1rem;
   background-color: #fff;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-family: "Inter", sans-serif;
 }
 
 form {
@@ -220,13 +219,14 @@ form {
 
 /* --- Base Styles & Variables --- */
 :root {
-  --primary-color: #007bff;
+  --primary-color: #3b82f6;
   --success-color: #28a745;
   --error-color: #dc3545;
-  --light-gray: #f8f9fa;
+  --light-gray: #f9fafb;
   --text-color: #333;
-  --border-color: #dee2e6;
-  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --border-color: #e5e7eb;
+  --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
   --border-radius: 12px;
 }
 
@@ -235,20 +235,26 @@ body {
   background-color: var(--light-gray);
   color: var(--text-color);
   margin: 0;
-  padding: 2rem;
+  padding: 1.5rem;
   display: flex;
   justify-content: center;
   align-items: flex-start;
   min-height: 100vh;
 }
 
+@media (min-width: 768px) {
+  body {
+    padding: 3rem;
+  }
+}
+
 /* --- Main Layout --- */
 .main-container {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 2rem;
+  gap: 3rem;
   width: 100%;
-  max-width: 800px;
+  max-width: 1024px;
 }
 
 /* Responsive layout for wider screens */
@@ -263,10 +269,10 @@ body {
   background-color: white;
   border-radius: var(--border-radius);
   box-shadow: var(--card-shadow);
-  padding: 2rem;
+  padding: 2.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 /* --- Product Card Specifics --- */
@@ -318,6 +324,11 @@ body {
   background-color: #f0f0f0;
 }
 
+.quantity-selector button:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
 .quantity-selector input {
   border: none;
   text-align: center;
@@ -333,7 +344,13 @@ body {
   margin: 0;
 }
 
-/* --- Pay Button --- */
+/* --- Payment Form Styling --- */
+.payment-form-card h2 {
+  margin-top: 0;
+  text-align: center;
+}
+
+/* --- Pay Button (used for refund button) --- */
 .pay-button {
   background-color: var(--primary-color);
   color: white;
@@ -349,7 +366,7 @@ body {
 }
 
 .pay-button:hover {
-  background-color: #0056b3;
+  background-color: #2563eb;
 }
 
 .pay-button:active {
@@ -361,10 +378,97 @@ body {
   cursor: not-allowed;
 }
 
-/* --- Payment Form Styling --- */
-.payment-form-card h2 {
+/* --- Refund Card Specifics --- */
+.refund-card {
+  grid-column: 1 / -1; /* Make refund card span full width on desktop */
+}
+
+.refund-card h2 {
   margin-top: 0;
   text-align: center;
+}
+
+.refund-card p {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.payment-id-display {
+  background-color: var(--light-gray);
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-family: monospace;
+  word-break: break-all;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.25rem;
+}
+
+.form-field label {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-field input {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+/* --- Loading Spinner & States --- */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  padding: 2rem 0;
+  text-align: center;
+}
+
+.loading-spinner {
+  border: 4px solid #f0f0f0;
+  border-top: 4px solid var(--primary-color);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+/* --- General Message Styling --- */
+.error-message {
+  color: var(--error-color);
+  text-align: center;
+  padding: 1rem 0 0 0; /* Adjusted padding for better spacing */
+  min-height: 1.2em; /* Prevents layout shift when text appears */
+  font-weight: 500;
+}
+
+.success-message {
+  color: var(--success-color);
+  text-align: center;
+  padding: 1rem 0 0 0;
+  min-height: 1.2em;
+  font-weight: 500;
+  word-break: break-all; /* Ensures long IDs don't overflow */
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 details {

@@ -8,11 +8,18 @@ const priceDisplay = document.getElementById("price-display");
 const flowContainer = document.getElementById("flow-container");
 const addressContainer = document.getElementById("address-container");
 const authContainer = document.getElementById("authentication-container");
+const successfulPaymentId = document.getElementById("successful-payment-id");
+const refundPaymentIdInput = document.getElementById("refund-payment-id");
+const refundAmountInput = document.getElementById("refund-amount");
+const refundButton = document.getElementById("refund-button");
+const refundErrorMessage = document.getElementById("refund-error-message");
+const refundSuccessMessage = document.getElementById("refund-success-message");
 
 // --- State and Constants ---
-const UNIT_PRICE = 90.0; // Price per item in HKD in Cents
+const UNIT_PRICE = 90.0; // Price per item in HKD
 let currentQuantity = 1;
-const PUBLIC_KEY = "pk_sbox_62ssf4ywm7wxnlz7joovagwbqu3";
+const PUBLIC_KEY = "pk_sbox_62ssf4ywm7wxnlz7joovagwbqu3"; // Your public key
+
 /**
  * Debounce function to delay function execution. This prevents firing an API call
  * for every single click if the user is rapidly changing the quantity.
@@ -48,7 +55,7 @@ async function updatePaymentSession() {
   flowContainer.innerHTML = `
     <div class="loading-state">
       <div class="loading-spinner"></div>
-      <span>Updating Payment Details...</span>
+      <span>Updating payment details...</span>
     </div>`;
   addressContainer.innerHTML = "";
   authContainer.innerHTML = "";
@@ -92,8 +99,13 @@ async function updatePaymentSession() {
           ],
         },
       },
-      onPaymentCompleted: (_component, paymentResponse) =>
-        console.log("Create Payment with PaymentId: ", paymentResponse.id),
+      onPaymentCompleted: (_component, paymentResponse) => {
+        console.log("Create Payment with PaymentId: ", paymentResponse.id);
+        // Display the successful payment ID on the page
+        successfulPaymentId.textContent = paymentResponse.id;
+        // Pre-fill the refund input field
+        refundPaymentIdInput.value = paymentResponse.id;
+      },
     });
 
     const flowComponent = checkout.create("flow");
@@ -117,18 +129,26 @@ async function updatePaymentSession() {
   }
 }
 
-const debouncedUpdatePaymentSession = debounce(updatePaymentSession, 1000);
+const debouncedUpdatePaymentSession = debounce(updatePaymentSession, 500);
 
 /**
  * Updates the total price in the UI and triggers a payment session update.
  */
 function handleQuantityChange() {
-  const totalPrice = UNIT_PRICE * currentQuantity.toFixed(2);
+  const totalPrice = (UNIT_PRICE * currentQuantity).toFixed(2);
   quantityValue.value = currentQuantity;
   priceDisplay.textContent = `${totalPrice} HKD`;
   quantityMinus.disabled = currentQuantity === 1;
 
   debouncedUpdatePaymentSession();
+}
+
+/**
+ * Clears refund status messages.
+ */
+function clearRefundMessages() {
+  refundErrorMessage.textContent = "";
+  refundSuccessMessage.textContent = "";
 }
 
 // --- Event Listeners ---
@@ -144,11 +164,64 @@ quantityMinus.addEventListener("click", () => {
   }
 });
 
+refundButton.addEventListener("click", async () => {
+  // Clear any previous status messages
+  clearRefundMessages();
+  const paymentId = refundPaymentIdInput.value;
+  const amount = parseFloat(refundAmountInput.value);
+
+  if (!paymentId || !amount || amount <= 0) {
+    refundErrorMessage.textContent =
+      "Please enter a valid Payment ID and amount.";
+    return;
+  }
+
+  refundButton.disabled = true;
+  refundButton.textContent = "Refunding...";
+
+  try {
+    const response = await fetch("/refund-payment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paymentId, amount }),
+    });
+
+    if (response.ok) {
+      const successData = await response.json();
+      refundSuccessMessage.textContent = `Refund successful! Action ID: ${successData.action_id}`;
+      triggerToast("refundSuccessToast");
+      // Clear the amount field after successful refund
+      refundAmountInput.value = "";
+    } else {
+      const errorData = await response.json();
+      console.error("Refund failed:", errorData);
+      // Display a specific error message if available from the API response
+      const errorMessage = errorData.error_codes
+        ? errorData.error_codes.join(", ")
+        : "An unknown error occurred.";
+      refundErrorMessage.textContent = `Refund failed: ${errorMessage}`;
+      triggerToast("refundFailedToast");
+    }
+  } catch (error) {
+    console.error("Error during refund request:", error);
+    refundErrorMessage.textContent =
+      "An unexpected network error occurred. Please try again.";
+    triggerToast("refundFailedToast");
+  } finally {
+    refundButton.disabled = false;
+    refundButton.textContent = "Process Refund";
+  }
+});
+
+// Clear status messages when the user starts typing again
+refundPaymentIdInput.addEventListener("input", clearRefundMessages);
+refundAmountInput.addEventListener("input", clearRefundMessages);
+
 /**
  * Initializes the page on first load.
  */
 function initializePage() {
-  const totalPrice = UNIT_PRICE * currentQuantity.toFixed(2);
+  const totalPrice = (UNIT_PRICE * currentQuantity).toFixed(2);
   quantityValue.value = currentQuantity;
   priceDisplay.textContent = `${totalPrice} HKD`;
   quantityMinus.disabled = currentQuantity === 1;
