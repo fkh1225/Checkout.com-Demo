@@ -14,10 +14,12 @@ const refundAmountInput = document.getElementById("refund-amount");
 const refundButton = document.getElementById("refund-button");
 const refundErrorMessage = document.getElementById("refund-error-message");
 const refundSuccessMessage = document.getElementById("refund-success-message");
+const refundCurrencyLabel = document.getElementById("refund-currency-label");
 
 // --- State and Constants ---
-const UNIT_PRICE = 90.0; // Price per item in HKD
+const UNIT_PRICE = 90.0; // Price per item in currency
 let currentQuantity = 1;
+const currency = "SGD";
 const PUBLIC_KEY = "pk_sbox_62ssf4ywm7wxnlz7joovagwbqu3"; // Your public key
 
 /**
@@ -64,7 +66,7 @@ async function updatePaymentSession() {
     const response = await fetch("/create-payment-sessions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ quantity: currentQuantity }),
+      body: JSON.stringify({ quantity: currentQuantity, currency: currency }),
     });
 
     const paymentSession = await response.json();
@@ -137,7 +139,7 @@ const debouncedUpdatePaymentSession = debounce(updatePaymentSession, 500);
 function handleQuantityChange() {
   const totalPrice = (UNIT_PRICE * currentQuantity).toFixed(2);
   quantityValue.value = currentQuantity;
-  priceDisplay.textContent = `${totalPrice} HKD`;
+  priceDisplay.textContent = `${totalPrice} ${currency}`;
   quantityMinus.disabled = currentQuantity === 1;
 
   debouncedUpdatePaymentSession();
@@ -223,7 +225,8 @@ refundAmountInput.addEventListener("input", clearRefundMessages);
 function initializePage() {
   const totalPrice = (UNIT_PRICE * currentQuantity).toFixed(2);
   quantityValue.value = currentQuantity;
-  priceDisplay.textContent = `${totalPrice} HKD`;
+  priceDisplay.textContent = `${totalPrice} ${currency}`;
+  refundCurrencyLabel.textContent = `Amount to Refund ${currency}`;
   quantityMinus.disabled = currentQuantity === 1;
 
   // Create the initial payment session on page load directly

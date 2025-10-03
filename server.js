@@ -17,20 +17,20 @@ const pcidHK = process.env.PCID_HK;
 // This endpoint dynamically creates a payment session based on quantity
 app.post("/create-payment-sessions", async (req, res) => {
   try {
-    const { quantity } = req.body;
+    const { quantity, currency } = req.body;
 
     // Basic validation
     if (!quantity || typeof quantity !== "number" || quantity < 1) {
       return res.status(400).json({ error: "A valid quantity is required." });
     }
 
-    const unitPriceInCents = 9000; // 90.00 HKD expressed in the smallest currency unit
+    const unitPriceInCents = 9000;
     const totalAmountInCents = unitPriceInCents * quantity;
 
     /*------------ Details in payment data determines the availability of payment methods -------------------------*/
     const paymentData = {
       amount: totalAmountInCents,
-      currency: "HKD",
+      currency: currency,
       // Adding a timestamp to make the reference unique for each request
       reference: `ORD-${Date.now()}`,
       display_name: "Online shop",
