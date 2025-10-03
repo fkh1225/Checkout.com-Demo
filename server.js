@@ -131,47 +131,6 @@ app.post("/refund-payment", async (req, res) => {
   }
 });
 
-// --- NEW WEBHOOK ENDPOINT ---
-app.post("/webhook", (req, res) => {
-  // 1. Verify the signature to ensure the request is from Checkout.com
-  const signature = req.headers["cko-signature"];
-  const hmac = crypto.createHmac("sha256", "0ee38863-bab9-4662-931f-0ace17835489");
-  const hash = hmac.update(req.rawBody).digest("hex");
-
-  if (hash !== signature) {
-    // Signature is invalid, reject the request
-    console.warn("Invalid webhook signature received.");
-    return res.status(401).send("Unauthorized");
-  }
-
-  // 2. Process the webhook event
-  const event = req.body;
-  console.log(`Webhook received: ${event.type}`);
-
-  // You can use a switch statement to handle different event types
-  switch (event.type) {
-    case "payment_captured":
-      // A payment was successfully captured.
-      // You might update your database, trigger shipping, etc.
-      console.log(`Payment captured for: ${event.data.id}`);
-      break;
-    case "payment_refunded":
-      // A payment was successfully refunded.
-      // You might update your records.
-      console.log(`Refund processed for payment: ${event.data.id}`);
-      break;
-    case "payment_approved":
-      console.log(`Payment approved for: ${event.data.id}`);
-      break;
-    // Add other event types you want to handle
-    default:
-      console.log(`Unhandled event type: ${event.type}`);
-  }
-
-  // 3. Acknowledge receipt by sending a 200 OK response
-  res.status(200).send("Webhook received");
-});
-
 app.listen(PORT, () =>
   console.log(`Server is running on http://localhost:${PORT}`)
 );
