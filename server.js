@@ -2,133 +2,103 @@ require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const fetch = require("node-fetch");
+const crypto = require("crypto"); // Import the crypto module for security
 const app = express();
+
+// A raw body is needed to verify the webhook signature
+// The "verify" function will be called for each request,
+// and we'll save the raw body on the request object.
+const rawBodySaver = (req, res, buf, encoding) => {
+  if (buf && buf.length) {
+    req.rawBody = buf.toString(encoding || "utf8");
+  }
+};
+
+// Use the raw body saver for all routes, but also use express.json() for parsing
+app.use(express.json({ verify: rawBodySaver }));
+app.use(express.urlencoded({ extended: true, verify: rawBodySaver }));
+
 
 app.use(express.static("public"));
 app.use(express.static(path.join(__dirname, "public")));
-app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3002;
 
-//secret keys and configuration
+// --- Environment Variables ---
 const SECRET_KEY = process.env.SECRET_KEY;
 const pcidHK = process.env.PCID_HK;
 
-// This endpoint dynamically creates a payment session based on quantity
 app.post("/create-payment-sessions", async (req, res) => {
-  try {
     const { quantity, currency } = req.body;
 
-    // Basic validation
-    if (!quantity || typeof quantity !== "number" || quantity < 1) {
-      return res.status(400).json({ error: "A valid quantity is required." });
+    if (!quantity || quantity <= 0) {
+        return res.status(400).json({ error: "Invalid quantity" });
     }
 
-    const unitPriceInCents = 9000;
-    const totalAmountInCents = unitPriceInCents * quantity;
+    // Calculate total amount on the server to prevent manipulation
+    const unitPrice = 9000; // 90.00 in the smallest currency unit (e.g., cents)
+    const totalAmount = unitPrice * quantity;
 
-    /*------------ Details in payment data determines the availability of payment methods -------------------------*/
     const paymentData = {
-      amount: totalAmountInCents,
-      currency: currency,
-      // Adding a timestamp to make the reference unique for each request
-      reference: `ORD-${Date.now()}`,
-      display_name: "Online shop",
-      payment_type: "Regular",
-      billing: {
-        address: {
-          country: "HK",
-        },
-      },
-      customer: {
-        name: "Neal Fung",
-        email: "neal@dummy.com",
-      },
-      items: [
-        {
-          reference: "0001",
-          name: "New iPhone Case designed by Neal",
-          quantity: quantity,
-          unit_price: unitPriceInCents,
-        },
-      ],
-      capture: true,
-      processing_channel_id: pcidHK,
-      success_url: "https://example.com/payments/success",
-      failure_url: "https://example.com/payments/failure",
+        amount: totalAmount,
+        currency: currency || "HKD",
+        reference: `ORD-${Date.now()}`,
+        display_name: "Online shop",
+        payment_type: "Regular",
+        billing: { address: { country: "HK" } },
+        customer: { name: "Neal Fung", email: "neal@dummy.com" },
+        items: [{
+            reference: "0001",
+            name: "New iPhone Case designed by Neal",
+            quantity: quantity,
+            unit_price: unitPrice,
+        }],
+        capture: true,
+        processing_channel_id: pcidHK,
+        success_url: "https://example.com/payments/success",
+        failure_url: "https://example.com/payments/failure",
     };
 
-    // Create a PaymentSession with the dynamic data
-    const response = await fetch(
-      "https://api.sandbox.checkout.com/payment-sessions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${SECRET_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(paymentData),
-      }
-    );
-
-    const paymentSession = await response.json();
-
-    if (!response.ok) {
-      // Forward the error from the payment gateway
-      return res.status(response.status).send(paymentSession);
+    try {
+        const request = await fetch("https://api.sandbox.checkout.com/payment-sessions", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${SECRET_KEY}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(paymentData),
+        });
+        const parsedPayload = await request.json();
+        res.status(request.status).send(parsedPayload);
+    } catch (error) {
+        console.error("Error creating payment session:", error);
+        res.status(500).json({ error: "Could not create payment session." });
     }
-
-    res.status(response.status).send(paymentSession);
-  } catch (error) {
-    console.error("Error processing payment session:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
 });
 
-// This endpoint handles refund requests
 app.post("/refund-payment", async (req, res) => {
-  try {
     const { paymentId, amount } = req.body;
-
-    // Basic validation
-    if (!paymentId || !amount || typeof amount !== "number" || amount <= 0) {
-      return res
-        .status(400)
-        .json({ error: "A valid Payment ID and amount are required." });
+    if (!paymentId || !amount) {
+        return res.status(400).json({ error: "Payment ID and amount are required." });
     }
 
-    // Amount should be in the smallest currency unit (cents)
-    const amountInCents = Math.round(amount * 100);
+    const refundAmount = Math.round(amount * 100);
 
-    const refundData = {
-      amount: amountInCents,
-      reference: `REF-${paymentId}-${Date.now()}`, // Unique reference for the refund
-    };
-
-    const refundUrl = `https://api.sandbox.checkout.com/payments/${paymentId}/refunds`;
-
-    // Process the refund
-    const response = await fetch(refundUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${SECRET_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(refundData),
-    });
-
-    const refundResponse = await response.json();
-
-    if (!response.ok) {
-      console.error("Refund failed:", refundResponse);
-      return res.status(response.status).send(refundResponse);
+    try {
+        const response = await fetch(`https://api.sandbox.checkout.com/payments/${paymentId}/refunds`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${SECRET_KEY}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ amount: refundAmount, reference: `REF-${Date.now()}` }),
+        });
+        const data = await response.json();
+        res.status(response.status).send(data);
+    } catch (error) {
+        console.error("Error processing refund:", error);
+        res.status(500).json({ error: "An unexpected error occurred during the refund." });
     }
-
-    res.status(response.status).send(refundResponse);
-  } catch (error) {
-    console.error("Error processing refund:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
 });
 
 app.listen(PORT, () =>
