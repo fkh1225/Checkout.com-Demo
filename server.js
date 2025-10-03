@@ -8,7 +8,7 @@ app.use(express.static("public"));
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3000;
 
 //secret keys and configuration
 const SECRET_KEY = process.env.SECRET_KEY;
@@ -107,7 +107,7 @@ app.post("/refund-payment", async (req, res) => {
 
     const refundUrl = `https://api.sandbox.checkout.com/payments/${paymentId}/refunds`;
 
-    // Process the refund with Checkout.com
+    // Process the refund
     const response = await fetch(refundUrl, {
       method: "POST",
       headers: {

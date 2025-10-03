@@ -17,10 +17,10 @@ const refundSuccessMessage = document.getElementById("refund-success-message");
 const refundCurrencyLabel = document.getElementById("refund-currency-label");
 
 // --- State and Constants ---
-const UNIT_PRICE = 90.0; // Price per item in currency
+const UNIT_PRICE = 90.0; // Price per item
 let currentQuantity = 1;
-const currency = "SGD";
-const PUBLIC_KEY = "pk_sbox_62ssf4ywm7wxnlz7joovagwbqu3"; // Your public key
+const currency = "HKD";
+const PUBLIC_KEY = "pk_sbox_62ssf4ywm7wxnlz7joovagwbqu3"; // Sandbox public key
 
 /**
  * Debounce function to delay function execution. This prevents firing an API call
@@ -66,7 +66,10 @@ async function updatePaymentSession() {
     const response = await fetch("/create-payment-sessions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ quantity: currentQuantity, currency: currency }),
+      body: JSON.stringify({
+        quantity: currentQuantity,
+        currency: currency,
+      }),
     });
 
     const paymentSession = await response.json();
