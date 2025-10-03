@@ -135,7 +135,7 @@ app.post("/refund-payment", async (req, res) => {
 app.post("/webhook", (req, res) => {
   // 1. Verify the signature to ensure the request is from Checkout.com
   const signature = req.headers["cko-signature"];
-  const hmac = crypto.createHmac("sha256", WEBHOOK_SECRET);
+  const hmac = crypto.createHmac("sha256", "0ee38863-bab9-4662-931f-0ace17835489");
   const hash = hmac.update(req.rawBody).digest("hex");
 
   if (hash !== signature) {
