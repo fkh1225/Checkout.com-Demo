@@ -55,9 +55,9 @@ app.post("/create-payment-sessions", async (req, res) => {
         }],
         capture: true,
         processing_channel_id: pcidHK,
-        "3ds": {
-        enabled: true,
-        attempt_n3d: false,
+        // "3ds": {
+        // enabled: true,
+        // attempt_n3d: false,
       // challenge_indicator: "",
       // exemption: "",
       // allow_upgrade: true,
