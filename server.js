@@ -61,7 +61,7 @@ app.post("/create-payment-sessions", async (req, res) => {
       // challenge_indicator: "",
       // exemption: "",
       // allow_upgrade: true,
-          },
+          // },
         success_url: "https://example.com/payments/success",
         failure_url: "https://example.com/payments/failure",
     };
