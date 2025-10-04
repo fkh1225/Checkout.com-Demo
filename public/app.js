@@ -19,7 +19,7 @@ const refundCurrencyLabel = document.getElementById("refund-currency-label");
 // --- State and Constants ---
 const UNIT_PRICE = 90.0; // Price per item
 let currentQuantity = 1;
-const currency = "SGD";
+const currency = "HKD";
 const PUBLIC_KEY = "pk_sbox_62ssf4ywm7wxnlz7joovagwbqu3"; // Sandbox public key
 
 /**
